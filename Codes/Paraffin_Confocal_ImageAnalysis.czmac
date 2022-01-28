@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Script>
+  <Context>Zen26</Context>
+  <Version>1.0</Version>
+  <Language>Python</Language>
+  <Text>#######################################################
+## I M A G E   P R O C E S S I N G
+##
+## Macro name: Compute_GFP_Ratio.czmac
+##
+## Author: ZSPANIYA@APAC and ZSMMATHE@APAC Digital Solutions
+##
+## TAKES THE INPUT IMAGE 
+## ANALYZE IMAGE WITH USER-DEFINED IMAGE ANALYSIS SETTING
+## 
+## Copyright (c) 2020 by Carl Zeiss Microscopy GmbH.
+## Permission is granted to use, modify and distribute this code,
+## as long as this copyright notice remains part of the code.
+#######################################################
+##
+from System.IO import File, Directory, Path
+import sys
+## clear the macro editor console output
+Zen.Application.MacroEditor.ClearMessages()
+##
+## User-defined function to get short names(without folder path) for the analysis setting
+def getshortfiles(filelist):
+    files_short = []
+    for short in filelist:
+        files_short.append(Path.GetFileName(short))
+    
+    return files_short
+##
+## Check the location of folder where experiment setups and image analysis settings are stored
+docfolder = Zen.Application.Environment.GetFolderPath(ZenSpecialFolder.WorkgroupDocuments)
+print(docfolder)
+## Get list with all existing image analysis setups and a short version of that list
+ipfiles = Directory.GetFiles(Path.Combine(docfolder, 'Image Analysis Settings'),'*.czias')
+ipfiles_short = getshortfiles(ipfiles)
+##
+## Set up the GUI dialog window
+GUIDialog = ZenWindow()
+GUIDialog.Initialize('Hole Segmentation')
+## Add components to GUI dialog
+GUIDialog.AddLabel('Select Image Analysis Workflow to detect the holes')
+GUIDialog.AddDropDown('ias_name', 'Image Analysis Workflow', ipfiles_short, 2)
+## Show the GUI window
+result = GUIDialog.Show()
+## Print message if the macro is cancelled
+if result.HasCanceled:
+    message = 'Macro was canceled by user.'
+    print(message)
+    raise SystemExit
+##
+## Else execute the macro
+else:
+    ## Load the active image on ZEN that has to be analyzed
+    image1 = Zen.Application.Documents.ActiveDocument
+    ## Denoise the input image
+    image2 = Zen.Processing.Filter.Smooth.Denoise(image1, ZenDenoiseMethod.ComplexWavelets, 1, False)
+    ## Get the values from GUI dialog and store them
+    ## Image analysis setting chosen by the user
+    iasName = str(result.GetValue('ias_name'))
+    ## print(iasName)   
+    ## Analyze the active image using the chosen image analysis setting
+    ias=ZenImageAnalysisSetting()
+    ias.Load(iasName)
+    image3 = Zen.Analyzing.Analyze(image2,ias)
+    Zen.Application.Documents.Add(image3)
+##
+#########################################################
+</Text>
+  <Author></Author>
+  <Description></Description>
+  <Keywords></Keywords>
+  <Row>23</Row>
+  <Column>21</Column>
+</Script>
